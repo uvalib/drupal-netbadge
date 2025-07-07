@@ -1,0 +1,57 @@
+# Docker Compose Example for Production Deployment
+
+version: '3.8'
+
+services:
+  drupal-netbadge:
+    image: your-registry/drupal-netbadge:latest
+    container_name: drupal-netbadge
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # SimpleSAMLphp Configuration
+      - SIMPLESAML_BASE_URL=https://your-domain.com/simplesaml/
+      - SIMPLESAML_COOKIE_DOMAIN=.your-domain.com
+      - SIMPLESAML_SECRET_SALT=${SIMPLESAML_SECRET_SALT}
+      - SIMPLESAML_ADMIN_PASSWORD=${SIMPLESAML_ADMIN_PASSWORD}
+      - SIMPLESAML_TECH_NAME=Your Organization IT Team
+      - SIMPLESAML_TECH_EMAIL=admin@your-domain.com
+      - SIMPLESAML_PROTECT_INDEX=true
+      - SIMPLESAML_PROTECT_METADATA=true
+      - SIMPLESAML_COOKIE_SECURE=true
+      - SIMPLESAML_SP_ENTITY_ID=https://your-domain.com
+      - SIMPLESAML_DEFAULT_IDP=production-saml-idp
+      - SIMPLESAML_IDP_ENTITY_ID=${SIMPLESAML_IDP_ENTITY_ID}
+      - SIMPLESAML_IDP_SSO_URL=${SIMPLESAML_IDP_SSO_URL}
+      - SIMPLESAML_IDP_SLO_URL=${SIMPLESAML_IDP_SLO_URL}
+      - SIMPLESAML_DEBUG=false
+      - SIMPLESAML_SHOW_ERRORS=false
+      - SIMPLESAML_ERROR_REPORTING=false
+      - SIMPLESAML_ENABLE_EXAMPLE_AUTH=false
+      - TZ=America/New_York
+    volumes:
+      # Mount certificates and logs
+      - ./certs:/var/simplesamlphp/cert:ro
+      - ./logs:/var/simplesamlphp/log
+      - ./data:/var/simplesamlphp/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Optional: Reverse proxy with SSL termination
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/ssl/certs:ro
+    depends_on:
+      - drupal-netbadge
+    restart: unless-stopped

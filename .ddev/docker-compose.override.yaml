@@ -1,0 +1,10 @@
+services:
+  web:
+    environment:
+      - TZ=America/New_York
+      - APP_HOME=/drupal-netbadge
+      - SIMPLESAMLPHP_CONFIG_DIR=/var/simplesamlphp/config
+    volumes:
+      # Mount SimpleSAMLphp config
+      - "../simplesamlphp/config:/var/simplesamlphp/config"
+      - "../simplesamlphp/metadata:/var/simplesamlphp/metadata"

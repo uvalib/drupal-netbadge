@@ -27,3 +27,58 @@ Icon?
 .noindex
 
 .vscode
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.staging
+
+# DDEV files (keep configuration, ignore local state)
+.ddev/.global_commands/
+.ddev/.homeadditions/
+.ddev/.webimageBuild/
+.ddev/mutagen/
+.ddev/nginx_full/
+.ddev/apache/
+.ddev/mysql/
+.ddev/postgres/
+.ddev/commands/web/
+.ddev/commands/db/
+.ddev/commands/host/
+.ddev/homeadditions/
+.ddev/import-db/
+.ddev/import-files/
+.ddev/traefik/
+
+# SimpleSAMLphp sensitive files
+simplesamlphp/config/config-local.php
+simplesamlphp/cert/*.pem
+simplesamlphp/cert/*.crt
+simplesamlphp/cert/*.key
+
+# SimpleSAMLphp runtime directories
+simplesamlphp/log/
+simplesamlphp/tmp/
+simplesamlphp/data/
+simplesamlphp/cache/
+
+# Docker build artifacts
+*.tar
+*.tar.gz
+
+# Drupal files
+web/sites/*/files/
+web/sites/*/private/
+vendor/
+node_modules/
+*.log
+
+# npm files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+package-lock.json
+yarn.lock

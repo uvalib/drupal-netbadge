@@ -1,0 +1,50 @@
+{
+  "name": "drupal-netbadge",
+  "version": "1.0.0",
+  "description": "Drupal NetBadge with SimpleSAMLphp integration for DDEV and AWS",
+  "scripts": {
+    "help": "node scripts/dev.js help",
+    "build": "echo '🔨 Building container...' && docker build -f package/Dockerfile -t drupal-netbadge:latest .",
+    "sync": "node scripts/dev.js sync",
+    "start": "echo '🚀 Starting DDEV...' && ddev start",
+    "stop": "echo '⏹️  Stopping DDEV...' && ddev stop",
+    "restart": "echo '🔄 Restarting DDEV...' && ddev restart",
+    "logs": "echo '📋 Showing DDEV logs...' && ddev logs",
+    "clean": "echo '🧹 Cleaning up...' && ddev delete -Oy && docker system prune -f",
+    "test": "echo '🧪 Running tests...' && ddev exec 'cd /var/www/html && ./vendor/bin/phpunit'",
+    "deploy:check": "node scripts/dev.js deployCheck",
+    "deploy:config": "echo '📋 Available deployment configurations:' && echo '  - package/config/.env.production.example' && echo '  - package/config/.env.development.example' && echo '  - package/deployment/docker-compose.production.yml' && echo '  - package/deployment/kubernetes.yml' && echo '  - package/deployment/ecs-task-definition.json'",
+    "aws:login": "echo '🔐 Logging into AWS ECR...' && aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $CONTAINER_REGISTRY",
+    "aws:push": "echo '📤 Pushing to ECR...' && docker tag drupal-netbadge:latest $CONTAINER_REGISTRY/drupal-netbadge:latest && docker push $CONTAINER_REGISTRY/drupal-netbadge:latest",
+    "dev:setup": "npm run start && npm run sync",
+    "dev:rebuild": "npm run clean && npm run build && npm run sync",
+    "saml:test": "echo '🔐 Testing SAML authentication...' && echo 'Open: https://drupal-netbadge.ddev.site:8443/test-saml.php' && echo 'Admin: https://drupal-netbadge.ddev.site:8443/simplesaml' && echo 'Test users: student/studentpass, staff/staffpass, faculty/facultypass'",
+    "saml:admin": "echo '⚙️  Opening SimpleSAMLphp admin...' && echo 'URL: https://drupal-netbadge.ddev.site:8443/simplesaml' && echo 'Password: admin123'",
+    "lint:dockerfile": "echo '🔍 Linting Dockerfile...' && docker run --rm -i hadolint/hadolint < package/Dockerfile",
+    "security:scan": "echo '🔒 Scanning for security issues...' && docker run --rm -v $(pwd):/src sonatypecommunity/nancy sleuth",
+    "container:health": "echo '🏥 Testing container health...' && docker run --rm -d --name drupal-netbadge-test -p 8888:80 drupal-netbadge:latest && sleep 5 && (curl -f http://localhost:8888 > /dev/null 2>&1 && echo '✅ Container health check passed' || echo '❌ Container health check failed') && docker stop drupal-netbadge-test",
+    "postinstall": "echo '🎉 Setup complete! Run \"npm run help\" to see available commands.'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-org/drupal-netbadge.git"
+  },
+  "keywords": [
+    "drupal",
+    "netbadge",
+    "simplesamlphp",
+    "saml",
+    "ddev",
+    "docker",
+    "aws"
+  ],
+  "author": "Your Team",
+  "license": "MIT",
+  "devDependencies": {
+    "cross-env": "^7.0.3"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  }
+}

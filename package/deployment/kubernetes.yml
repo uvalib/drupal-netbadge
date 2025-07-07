@@ -1,0 +1,115 @@
+# Kubernetes Deployment Example
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: simplesaml-secrets
+type: Opaque
+stringData:
+  secret-salt: "your-very-long-random-secret-salt-here"
+  admin-password: "your-secure-admin-password"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: simplesaml-config
+data:
+  SIMPLESAML_BASE_URL: "https://your-domain.com/simplesaml/"
+  SIMPLESAML_COOKIE_DOMAIN: ".your-domain.com"
+  SIMPLESAML_TECH_NAME: "Your Organization IT Team"
+  SIMPLESAML_TECH_EMAIL: "admin@your-domain.com"
+  SIMPLESAML_PROTECT_INDEX: "true"
+  SIMPLESAML_PROTECT_METADATA: "true"
+  SIMPLESAML_COOKIE_SECURE: "true"
+  SIMPLESAML_SP_ENTITY_ID: "https://your-domain.com"
+  SIMPLESAML_DEFAULT_IDP: "production-saml-idp"
+  SIMPLESAML_IDP_ENTITY_ID: "https://idp.university.edu/simplesaml/saml2/idp/metadata.php"
+  SIMPLESAML_IDP_SSO_URL: "https://idp.university.edu/simplesaml/saml2/idp/SSOService.php"
+  SIMPLESAML_IDP_SLO_URL: "https://idp.university.edu/simplesaml/saml2/idp/SingleLogoutService.php"
+  SIMPLESAML_DEBUG: "false"
+  SIMPLESAML_SHOW_ERRORS: "false"
+  SIMPLESAML_ERROR_REPORTING: "false"
+  SIMPLESAML_ENABLE_EXAMPLE_AUTH: "false"
+  TZ: "America/New_York"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: drupal-netbadge
+  labels:
+    app: drupal-netbadge
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: drupal-netbadge
+  template:
+    metadata:
+      labels:
+        app: drupal-netbadge
+    spec:
+      containers:
+      - name: drupal-netbadge
+        image: your-registry/drupal-netbadge:latest
+        ports:
+        - containerPort: 80
+        env:
+        - name: SIMPLESAML_SECRET_SALT
+          valueFrom:
+            secretKeyRef:
+              name: simplesaml-secrets
+              key: secret-salt
+        - name: SIMPLESAML_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: simplesaml-secrets
+              key: admin-password
+        envFrom:
+        - configMapRef:
+            name: simplesaml-config
+        volumeMounts:
+        - name: simplesaml-data
+          mountPath: /var/simplesamlphp/data
+        - name: simplesaml-logs
+          mountPath: /var/simplesamlphp/log
+        - name: simplesaml-certs
+          mountPath: /var/simplesamlphp/cert
+          readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /simplesaml/
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: simplesaml-data
+        persistentVolumeClaim:
+          claimName: simplesaml-data-pvc
+      - name: simplesaml-logs
+        persistentVolumeClaim:
+          claimName: simplesaml-logs-pvc
+      - name: simplesaml-certs
+        secret:
+          secretName: simplesaml-certificates
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: drupal-netbadge-service
+spec:
+  selector:
+    app: drupal-netbadge
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+  type: ClusterIP

@@ -1,0 +1,142 @@
+{
+  "family": "drupal-netbadge",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::YOUR_ACCOUNT:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::YOUR_ACCOUNT:role/drupal-netbadge-task-role",
+  "containerDefinitions": [
+    {
+      "name": "drupal-netbadge",
+      "image": "YOUR_ECR_REGISTRY/drupal-netbadge:latest",
+      "portMappings": [
+        {
+          "containerPort": 80,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "environment": [
+        {
+          "name": "SIMPLESAML_BASE_URL",
+          "value": "https://your-domain.com/simplesaml/"
+        },
+        {
+          "name": "SIMPLESAML_COOKIE_DOMAIN",
+          "value": ".your-domain.com"
+        },
+        {
+          "name": "SIMPLESAML_TECH_NAME",
+          "value": "Your Organization IT Team"
+        },
+        {
+          "name": "SIMPLESAML_TECH_EMAIL",
+          "value": "admin@your-domain.com"
+        },
+        {
+          "name": "SIMPLESAML_PROTECT_INDEX",
+          "value": "true"
+        },
+        {
+          "name": "SIMPLESAML_PROTECT_METADATA",
+          "value": "true"
+        },
+        {
+          "name": "SIMPLESAML_COOKIE_SECURE",
+          "value": "true"
+        },
+        {
+          "name": "SIMPLESAML_SP_ENTITY_ID",
+          "value": "https://your-domain.com"
+        },
+        {
+          "name": "SIMPLESAML_DEFAULT_IDP",
+          "value": "production-saml-idp"
+        },
+        {
+          "name": "SIMPLESAML_DEBUG",
+          "value": "false"
+        },
+        {
+          "name": "SIMPLESAML_SHOW_ERRORS",
+          "value": "false"
+        },
+        {
+          "name": "SIMPLESAML_ERROR_REPORTING",
+          "value": "false"
+        },
+        {
+          "name": "SIMPLESAML_ENABLE_EXAMPLE_AUTH",
+          "value": "false"
+        },
+        {
+          "name": "TZ",
+          "value": "America/New_York"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "SIMPLESAML_SECRET_SALT",
+          "valueFrom": "arn:aws:ssm:us-east-1:YOUR_ACCOUNT:parameter/drupal-netbadge/simplesaml/secret-salt"
+        },
+        {
+          "name": "SIMPLESAML_ADMIN_PASSWORD",
+          "valueFrom": "arn:aws:ssm:us-east-1:YOUR_ACCOUNT:parameter/drupal-netbadge/simplesaml/admin-password"
+        },
+        {
+          "name": "SIMPLESAML_IDP_ENTITY_ID",
+          "valueFrom": "arn:aws:ssm:us-east-1:YOUR_ACCOUNT:parameter/drupal-netbadge/simplesaml/idp-entity-id"
+        },
+        {
+          "name": "SIMPLESAML_IDP_SSO_URL",
+          "valueFrom": "arn:aws:ssm:us-east-1:YOUR_ACCOUNT:parameter/drupal-netbadge/simplesaml/idp-sso-url"
+        },
+        {
+          "name": "SIMPLESAML_IDP_SLO_URL",
+          "valueFrom": "arn:aws:ssm:us-east-1:YOUR_ACCOUNT:parameter/drupal-netbadge/simplesaml/idp-slo-url"
+        }
+      ],
+      "mountPoints": [
+        {
+          "sourceVolume": "simplesaml-data",
+          "containerPath": "/var/simplesamlphp/data"
+        },
+        {
+          "sourceVolume": "simplesaml-logs",
+          "containerPath": "/var/simplesamlphp/log"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/drupal-netbadge",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost/health || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3
+      }
+    }
+  ],
+  "volumes": [
+    {
+      "name": "simplesaml-data",
+      "efsVolumeConfiguration": {
+        "fileSystemId": "fs-YOUR_EFS_ID",
+        "rootDirectory": "/data"
+      }
+    },
+    {
+      "name": "simplesaml-logs",
+      "efsVolumeConfiguration": {
+        "fileSystemId": "fs-YOUR_EFS_ID",
+        "rootDirectory": "/logs"
+      }
+    }
+  ]
+}
