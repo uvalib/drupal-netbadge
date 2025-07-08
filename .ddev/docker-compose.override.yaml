@@ -9,3 +9,6 @@ services:
       - "../saml-config/simplesamlphp/config:/var/simplesamlphp/config"
       - "../saml-config/simplesamlphp/metadata:/var/simplesamlphp/metadata"
       - "../saml-config/simplesamlphp/cert:/var/simplesamlphp/cert"
+      - "../saml-config/simplesamlphp/tmp:/var/simplesamlphp/tmp"
+      - "../saml-config/simplesamlphp/log:/var/simplesamlphp/log"
+      - "../saml-config/simplesamlphp/data:/var/simplesamlphp/data"
