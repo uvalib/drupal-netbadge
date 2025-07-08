@@ -8,11 +8,11 @@ use SimpleSAML\Logger;
 $config = [
     // Basic configuration for DDEV
     'baseurlpath' => '/simplesaml/',
-    'certdir' => '/var/www/html/simplesamlphp/cert/',
-    'loggingdir' => '/var/www/html/simplesamlphp/log/',
-    'datadir' => '/var/www/html/simplesamlphp/data/',
-    'metadatadir' => '/var/www/html/simplesamlphp/metadata/',
-    'tempdir' => '/var/www/html/simplesamlphp/tmp/',
+    'certdir' => '/var/simplesamlphp/cert/',
+    'loggingdir' => '/var/simplesamlphp/log/',
+    'datadir' => '/var/simplesamlphp/data/',
+    'metadatadir' => '/var/simplesamlphp/metadata/',
+    'tempdir' => '/var/simplesamlphp/tmp/',
 
     // Security settings
     'secretsalt' => 'defaultsecretfordevonly-changeinproduction',

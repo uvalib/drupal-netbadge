@@ -6,13 +6,16 @@
  * See: https://simplesamlphp.org/docs/stable/simplesamlphp-reference-idp-hosted
  */
 
-$metadata['https://drupal-netbadge.ddev.site:8443/simplesaml/saml2/idp/metadata.php'] = [
+$metadata['__DEFAULT__'] = [
     /*
      * The hostname of the server (VHOST) that will use this SAML entity.
      *
      * Can be '__DEFAULT__', to use this entry by default.
      */
     'host' => '__DEFAULT__',
+
+    // Entity ID for this IdP
+    'entityid' => 'https://drupal-netbadge.ddev.site:8443/simplesaml/saml2/idp/metadata.php',
 
     // X.509 key and certificate. Relative to the cert directory.
     'privatekey' => 'server.pem',

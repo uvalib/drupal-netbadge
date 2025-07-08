@@ -8,3 +8,4 @@ services:
       # Mount SimpleSAMLphp config
       - "../saml-config/simplesamlphp/config:/var/simplesamlphp/config"
       - "../saml-config/simplesamlphp/metadata:/var/simplesamlphp/metadata"
+      - "../saml-config/simplesamlphp/cert:/var/simplesamlphp/cert"
