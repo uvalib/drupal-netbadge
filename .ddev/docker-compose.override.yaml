@@ -6,5 +6,5 @@ services:
       - SIMPLESAMLPHP_CONFIG_DIR=/var/simplesamlphp/config
     volumes:
       # Mount SimpleSAMLphp config
-      - "../simplesamlphp/config:/var/simplesamlphp/config"
-      - "../simplesamlphp/metadata:/var/simplesamlphp/metadata"
+      - "../saml-config/simplesamlphp/config:/var/simplesamlphp/config"
+      - "../saml-config/simplesamlphp/metadata:/var/simplesamlphp/metadata"

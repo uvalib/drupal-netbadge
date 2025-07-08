@@ -52,9 +52,12 @@ $config = [
     'logging.logfile' => 'simplesamlphp.log',
 
     // Development settings
-    'debug' => true,
+    'debug' => null,
     'showerrors' => true,
     'errorreporting' => true,
+
+    // Enable SAML 2.0 IdP
+    'enable.saml20-idp' => true,
 
     // Timezone
     'timezone' => 'America/New_York',

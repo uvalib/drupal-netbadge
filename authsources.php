@@ -12,11 +12,20 @@ $config = [
         'discoURL' => null,
     ],
 
+    // drupal-dhportal Service Provider
+    'dhportal-sp' => [
+        'saml:SP',
+        'entityID' => 'https://drupal-dhportal.ddev.site:8443',
+        'idp' => 'example-userpass',
+        'discoURL' => null,
+    ],
+
     // Simple userpass authentication for testing
     'example-userpass' => [
         'exampleauth:UserPass',
         'student:studentpass' => [
             'uid' => ['student'],
+            'eduPersonPrincipalName' => ['student@example.edu'],
             'eduPersonAffiliation' => ['member', 'student'],
             'eduPersonScopedAffiliation' => ['student@example.edu'],
             'mail' => ['student@example.edu'],
@@ -26,6 +35,7 @@ $config = [
         ],
         'staff:staffpass' => [
             'uid' => ['staff'],
+            'eduPersonPrincipalName' => ['staff@example.edu'],
             'eduPersonAffiliation' => ['member', 'staff'],
             'eduPersonScopedAffiliation' => ['staff@example.edu'],
             'mail' => ['staff@example.edu'],
@@ -35,6 +45,7 @@ $config = [
         ],
         'faculty:facultypass' => [
             'uid' => ['faculty'],
+            'eduPersonPrincipalName' => ['faculty@example.edu'],
             'eduPersonAffiliation' => ['member', 'faculty'],
             'eduPersonScopedAffiliation' => ['faculty@example.edu'],
             'mail' => ['faculty@example.edu'],
