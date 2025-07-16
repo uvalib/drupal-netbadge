@@ -8,7 +8,8 @@ FROM cirrusid/simplesamlphp:latest
 
 # update the packages
 RUN apt-get -y update && \
-        apt-get -y upgrade 
+        apt-get -y upgrade && \
+        apt-get install -y gettext-base
 
 # set the timezone appropriatly
 ENV TZ=America/New_York

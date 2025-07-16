@@ -42,6 +42,20 @@ This project provides a Drupal installation integrated with SimpleSAMLphp for Ne
 
 ### Development Workflow
 
+#### SAML Certificate Setup for Testing
+
+This project serves as a **test Identity Provider (IDP)** for local SAML development with `drupal-dhportal`. Use the coordinated certificate setup:
+
+```bash
+# From drupal-dhportal project (Service Provider)
+cd ../drupal-dhportal
+./scripts/setup-dev-saml-ecosystem.sh ../drupal-netbadge
+
+# This will configure certificates for both projects automatically
+```
+
+📋 **Complete Guide**: See [SAML_IDP_CERTIFICATES.md](SAML_IDP_CERTIFICATES.md) for detailed certificate management.
+
 #### Container Synchronization
 
 To keep your local development environment in sync with what will be deployed to AWS:
