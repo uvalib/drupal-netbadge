@@ -219,3 +219,9 @@ For issues specific to:
 - **DDEV**: Check [DDEV documentation](https://ddev.readthedocs.io/)
 - **SimpleSAMLphp**: Check [SimpleSAMLphp documentation](https://simplesamlphp.org/docs/)
 - **NetBadge**: Contact your institution's IT department
+
+## SAML/NetBadge Integration
+
+**Note:** SAML configuration and certificates are now managed via Ansible templates and deployed through the `terraform-infrastructure` repository.  
+Do not manually edit or add SAML config files in this repository.  
+See `/Users/ys2n/Code/ddev/drupal-dhportal/SIMPLESAML_ENVIRONMENT_IMPLEMENTATION.md` for details.
