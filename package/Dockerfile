@@ -46,9 +46,6 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
 COPY package/config/config.production.php /var/simplesamlphp/config/config.php
 COPY package/config/authsources.production.php /var/simplesamlphp/config/authsources.php
 
-# Copy missing templates for backward compatibility
-COPY package/templates/frontpage_welcome.twig /var/simplesamlphp/templates/
-
 # Create necessary directories for SimpleSAMLphp
 RUN mkdir -p /var/simplesamlphp/{cert,log,data} \
     && mkdir -p /tmp/simplesamlphp
@@ -58,19 +55,6 @@ COPY web /var/www/html/
 
 # Create symlink for SimpleSAMLphp public access
 RUN ln -sf /var/simplesamlphp/public /var/www/html/simplesaml
-
-# Also create the same structure at /opt/drupal for deployment compatibility
-RUN mkdir -p /opt/drupal/web \
-    && cp -r /var/www/html/* /opt/drupal/web/ \
-    && ln -sf /var/simplesamlphp/public /opt/drupal/web/simplesaml
-
-# Copy production configuration files
-COPY package/config/config.production.php /var/simplesamlphp/config/config.php
-COPY package/config/authsources.production.php /var/simplesamlphp/config/authsources.php
-
-# Create necessary directories for SimpleSAMLphp
-RUN mkdir -p /var/simplesamlphp/{cert,log,data} \
-    && mkdir -p /tmp/simplesamlphp
 
 # Set proper permissions
 RUN chown -R www-data:www-data /var/www/html \
