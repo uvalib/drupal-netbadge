@@ -42,12 +42,27 @@ RUN apt-get install -y \
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Copy SimpleSAMLphp configuration
-COPY simplesamlphp/config /var/simplesamlphp/config/
-COPY simplesamlphp/metadata /var/simplesamlphp/metadata/
+# Copy production configuration files
+COPY package/config/config.production.php /var/simplesamlphp/config/config.php
+COPY package/config/authsources.production.php /var/simplesamlphp/config/authsources.php
 
-# Create Drupal web directory
-RUN mkdir -p /var/www/html
+# Copy missing templates for backward compatibility
+COPY package/templates/frontpage_welcome.twig /var/simplesamlphp/templates/
+
+# Create necessary directories for SimpleSAMLphp
+RUN mkdir -p /var/simplesamlphp/{cert,log,data} \
+    && mkdir -p /tmp/simplesamlphp
+
+# Copy web files
+COPY web /var/www/html/
+
+# Create symlink for SimpleSAMLphp public access
+RUN ln -sf /var/simplesamlphp/public /var/www/html/simplesaml
+
+# Also create the same structure at /opt/drupal for deployment compatibility
+RUN mkdir -p /opt/drupal/web \
+    && cp -r /var/www/html/* /opt/drupal/web/ \
+    && ln -sf /var/simplesamlphp/public /opt/drupal/web/simplesaml
 
 # Copy production configuration files
 COPY package/config/config.production.php /var/simplesamlphp/config/config.php
