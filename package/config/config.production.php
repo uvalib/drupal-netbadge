@@ -13,6 +13,7 @@ $config = [
     'loggingdir' => '/var/simplesamlphp/log/',
     'datadir' => '/var/simplesamlphp/data/',
     'tempdir' => '/tmp/simplesamlphp/',
+    'cachedir' => '/var/cache/simplesamlphp/',
 
     // Security settings - from environment
     'secretsalt' => getenv('SIMPLESAML_SECRET_SALT') ?: 'CHANGE_THIS_IN_PRODUCTION',
