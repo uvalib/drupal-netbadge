@@ -53,9 +53,9 @@ $config = [
     'logging.logfile' => getenv('SIMPLESAML_LOG_FILE') ?: 'simplesamlphp.log',
 
     // Development/Production mode
-    'debug' => filter_var(getenv('SIMPLESAML_DEBUG') ?: 'false', FILTER_VALIDATE_BOOLEAN),
-    'showerrors' => filter_var(getenv('SIMPLESAML_SHOW_ERRORS') ?: 'false', FILTER_VALIDATE_BOOLEAN),
-    'errorreporting' => filter_var(getenv('SIMPLESAML_ERROR_REPORTING') ?: 'false', FILTER_VALIDATE_BOOLEAN),
+    'debug' => ['enabled' => filter_var(getenv('SIMPLESAML_DEBUG') ?: 'false', FILTER_VALIDATE_BOOLEAN),
+    'show_errors' => filter_var(getenv('SIMPLESAML_SHOW_ERRORS') ?: 'false', FILTER_VALIDATE_BOOLEAN),
+    'errorreporting' => filter_var(getenv('SIMPLESAML_ERROR_REPORTING') ?: 'false', FILTER_VALIDATE_BOOLEAN) ],
 
     // Timezone
     'timezone' => getenv('TZ') ?: 'UTC',
