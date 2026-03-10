@@ -45,6 +45,7 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
 # Copy production configuration files
 COPY package/config/config.production.php /var/simplesamlphp/config/config.php
 COPY package/config/authsources.production.php /var/simplesamlphp/config/authsources.php
+COPY package/config/metadata/saml20-idp-remote.php /var/simplesamlphp/metadata/saml20-idp-remote.php
 
 # Create necessary directories for SimpleSAMLphp
 RUN mkdir -p /var/simplesamlphp/{cert,log,data} \
