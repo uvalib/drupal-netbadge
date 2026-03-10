@@ -1,3 +1,5 @@
+<?php
+
 $metadata['urn:mace:incommon:virginia.edu'] = [
     'entityid' => 'urn:mace:incommon:virginia.edu',
     'description' => [
