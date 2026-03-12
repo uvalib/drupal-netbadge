@@ -48,6 +48,17 @@ $config = [
     // Store configuration
     'store.type' => getenv('SIMPLESAML_STORE_TYPE') ?: 'phpsession',
 
+    'store.redis.host' => getenv('SIMPLESAML_REDIS_HOST') ?: 'redis',
+    'store.redis.port' => (int) (getenv('SIMPLESAML_REDIS_PORT') ?: 6379),
+    'store.redis.database' => (int) (getenv('SIMPLESAML_REDIS_DATABASE') ?: 8),
+
+    // Strongly recommended if Drupal and SimpleSAMLphp share one Redis server.
+    'store.redis.prefix' => getenv('SIMPLESAML_REDIS_PREFIX') ?: 'ssp:',
+
+    // If using Redis auth:
+    'store.redis.username' => getenv('SIMPLESAML_REDIS_USERNAME') ?: null, // Redis 6+ ACL
+    'store.redis.password' => getenv('SIMPLESAML_REDIS_PASSWORD') ?: null,
+
     // Logging - environment-driven
     'logging.level' => getenv('SIMPLESAML_LOG_LEVEL') ?: Logger::NOTICE,
     'logging.handler' => getenv('SIMPLESAML_LOG_HANDLER') ?: 'file',
