@@ -18,8 +18,8 @@ $config = [
         'entityID' => getenv('SIMPLESAML_SP_ENTITY_ID') ?: 'https://your-domain.com',
         'idp' => getenv('SIMPLESAML_DEFAULT_IDP') ?: null,
         'discoURL' => getenv('SIMPLESAML_DISCO_URL') ?: null,
-	'privatekey' => 'saml.pem',
-        'certificate' => 'saml.crt',
+	'privatekey' => getenv ('SIMPLESAML_PROJECT').'.pem',
+        'certificate' => getenv ('SIMPLESAML_PROJECT').'.crt',
     ],
 ];
 
