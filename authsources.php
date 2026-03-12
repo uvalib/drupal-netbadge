@@ -1,31 +1,56 @@
 <?php
 /**
- * Authentication sources configuration for DDEV testing
+ * SimpleSAMLphp authentication sources for production deployment
+ * Configured via environment variables
  */
 
 $config = [
-    // Default SP for testing
+    // This is a authentication source which handles admin authentication.
+    'admin' => [
+        // The default is to use core:AdminPassword, but it can be replaced with
+        // any authentication source.
+        'core:AdminPassword',
+    ],
+
+    // Default SP configuration - environment-driven
     'default-sp' => [
         'saml:SP',
-        'entityID' => 'https://drupal-netbadge.ddev.site:8443',
-        'idp' => 'example-userpass',
-        'discoURL' => null,
+        'entityID' => getenv('SIMPLESAML_SP_ENTITY_ID') ?: 'https://your-domain.com',
+        'idp' => getenv('SIMPLESAML_DEFAULT_IDP') ?: null,
+        'discoURL' => getenv('SIMPLESAML_DISCO_URL') ?: null,
+	'privatekey' => 'saml.pem',
+        'certificate' => 'saml.crt',
     ],
+];
 
-    // drupal-dhportal Service Provider
-    'dhportal-sp' => [
+// Add SAML IdP configuration if provided via environment
+$idpEntityId = getenv('SIMPLESAML_IDP_ENTITY_ID');
+$idpSsoUrl = getenv('SIMPLESAML_IDP_SSO_URL');
+$idpSloUrl = getenv('SIMPLESAML_IDP_SLO_URL');
+$idpCertFile = getenv('SIMPLESAML_IDP_CERT_FILE');
+
+if ($idpEntityId && $idpSsoUrl) {
+    $config['production-idp'] = [
         'saml:SP',
-        'entityID' => 'https://drupal-dhportal.ddev.site:8443',
-        'idp' => 'example-userpass',
-        'discoURL' => null,
-    ],
+        'entityID' => getenv('SIMPLESAML_SP_ENTITY_ID') ?: 'https://your-domain.com',
+        'idp' => 'production-saml-idp',
+    ];
 
-    // Simple userpass authentication for testing
-    'example-userpass' => [
+    $config['production-saml-idp'] = [
+        'saml:External',
+        'entityId' => $idpEntityId,
+        'singleSignOnService' => $idpSsoUrl,
+        'singleLogoutService' => $idpSloUrl ?: null,
+        'certificate' => $idpCertFile ?: null,
+    ];
+}
+
+// Add example userpass auth only if explicitly enabled for testing
+if (filter_var(getenv('SIMPLESAML_ENABLE_EXAMPLE_AUTH') ?: 'false', FILTER_VALIDATE_BOOLEAN)) {
+    $config['example-userpass'] = [
         'exampleauth:UserPass',
         'student:studentpass' => [
             'uid' => ['student'],
-            'eduPersonPrincipalName' => ['student@example.edu'],
             'eduPersonAffiliation' => ['member', 'student'],
             'eduPersonScopedAffiliation' => ['student@example.edu'],
             'mail' => ['student@example.edu'],
@@ -35,17 +60,15 @@ $config = [
         ],
         'staff:staffpass' => [
             'uid' => ['staff'],
-            'eduPersonPrincipalName' => ['staff@example.edu'],
             'eduPersonAffiliation' => ['member', 'staff'],
             'eduPersonScopedAffiliation' => ['staff@example.edu'],
             'mail' => ['staff@example.edu'],
-            'displayName' => ['Test Staff'],
+            'displayName' => ['Test Staff Member'],
             'givenName' => ['Test'],
             'sn' => ['Staff'],
         ],
         'faculty:facultypass' => [
             'uid' => ['faculty'],
-            'eduPersonPrincipalName' => ['faculty@example.edu'],
             'eduPersonAffiliation' => ['member', 'faculty'],
             'eduPersonScopedAffiliation' => ['faculty@example.edu'],
             'mail' => ['faculty@example.edu'],
@@ -53,14 +76,5 @@ $config = [
             'givenName' => ['Test'],
             'sn' => ['Faculty'],
         ],
-    ],
-
-    // NetBadge configuration (for future use)
-    'netbadge' => [
-        'saml:SP',
-        'entityID' => 'https://drupal-netbadge.ddev.site:8443',
-        'idp' => 'netbadge-idp',
-        'discoURL' => null,
-        'NameIDFormat' => 'urn:oasis:names:tc:SAML:2.0:nameid-format:transient',
-    ],
-];
+    ];
+}
