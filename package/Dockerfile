@@ -16,7 +16,7 @@ ENV TZ=America/New_York
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Specify home
-ENV APP_HOME=/drupal-netbadge
+ENV APP_HOME=/var/simplesamlphp
 WORKDIR $APP_HOME
 
 # Install additional packages for Drupal
