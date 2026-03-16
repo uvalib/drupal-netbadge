@@ -25,6 +25,7 @@ $config = [
     'technicalcontact_name' => getenv('SIMPLESAML_TECH_NAME') ?: 'System Administrator',
     'technicalcontact_email' => getenv('SIMPLESAML_TECH_EMAIL') ?: 'admin@your-domain.com',
 
+
     // Session configuration - environment-driven
     'session.cookie.name' => 'SimpleSAMLSessionID',
     'session.cookie.lifetime' => (int)(getenv('SIMPLESAML_SESSION_LIFETIME') ?: '0'),
