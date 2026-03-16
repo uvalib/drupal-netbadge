@@ -42,6 +42,9 @@ RUN apt-get install -y \
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
+# Run composer install
+RUN composer install
+
 # Copy production configuration files
 COPY package/config/config.production.php /var/simplesamlphp/config/config.php
 COPY package/config/authsources.production.php /var/simplesamlphp/config/authsources.php
