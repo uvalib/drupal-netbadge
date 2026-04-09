@@ -1,0 +1,213 @@
+#
+# Ansible deploy scripting
+#
+
+---
+- name: Deploy Netbadge for all nodes
+  hosts: all
+  # hosts: uva-library-staging-0
+  become: true
+
+  vars:
+    default_build_tag: "latest"
+    image_name: "uvalib/drupal-netbadge"
+    container_name: netbadge-0
+    host_fs: /mnt/data
+    container_fs: /var/www/html
+    container_env: container_0.env.generated
+    managed_env: container_0.env.managed
+    secret_env:  container_0.env.secret
+    ansible_python_interpreter: /usr/bin/python3
+    ip_address: "{{ ansible_ssh_host }}"
+    deploy_tag: "latest"
+    additional_env:
+      ANSIBLE_HOSTNAME: "{{ inventory_hostname }}"
+      HOST_IP: "{{ ansible_host }}"
+    required_env_vars:
+      - SIMPLESAML_SECRET_SALT
+      - SIMPLESAML_ADMIN_PASSWORD
+      - SIMPLESAML_BASE_URL
+      - SIMPLESAML_SP_ENTITY_ID
+      - SIMPLESAML_PROTECT_METADATA
+      - SIMPLESAML_COOKIE_SECURE
+      - SIMPLESAML_DEBUG
+      - MYSQL_HOST
+      - MYSQL_DATABASE
+      - MYSQL_USER
+      - MYSQL_PASSWORD
+      - HASH_SALT
+
+  tasks:
+
+  - debug: var=inventory_hostname
+  - debug: var=ansible_hostname
+  - debug: var=hostvars
+
+  - debug:
+      msg: "INFO: to deploy a specific version, pass '-e deploy_tag=<deploy tag>' on the commandline"
+    when: deploy_tag == "latest"
+
+  - name: Check that the private keys exist
+    ansible.builtin.include_tasks:
+      file: "{{ inventory_dir }}/../../../global/playbooks/check_private_keys.yml"
+
+  - name: Load the global definitions
+    ansible.builtin.include_tasks:
+      file: "{{ inventory_dir }}/../../../global/playbooks/load_global_vars.yml"
+
+  - name: load the terraform definitions
+    ansible.builtin.include_tasks:
+      file: "{{ inventory_dir }}/../../../global/playbooks/load_tf_vars.yml"
+
+  - name: Get the latest build tag
+    local_action: shell aws ssm get-parameter --name "/containers/{{ image_name }}/{{ default_build_tag }}" | grep "Value" | awk -F\" '{print $4}'
+    become: no
+    register: latest_tag
+    failed_when: latest_tag.stderr != ""
+
+  - name: load the container environment
+    include_vars:
+      name: container_env
+      file: "{{ inventory_dir }}/{{ container_env }}"
+
+  - name: load the managed container environment
+    include_vars:
+      name: managed_env
+      file: "{{ inventory_dir }}/{{ managed_env }}"
+
+  - name: load the secret container environment
+    include_vars:
+      name: secret_env
+      file: "{{ inventory_dir }}/{{ secret_env }}"
+
+  - name: Add managed environment metadata to container
+    set_fact:
+      container_env: "{{ container_env | combine(managed_env, secret_env) }}"
+
+  - name: Ensure all required environment variables are set
+    assert:
+      that:
+        - "item in container_env"
+        - "container_env[item] != ''"
+      fail_msg: "Environment variable '{{ item }}' is missing or empty in container.env"
+    loop: "{{ required_env_vars }}"
+
+  - name: Merge additional environment variables
+    set_fact:
+      container_env: "{{ container_env | combine(additional_env) }}"
+
+  - name: Ensure cert directory exists
+    ansible.builtin.file:
+      path: "{{ host_fs }}/{{ container_name }}/cert"
+      state: directory
+#      owner: "{{ user }}" 
+#      group: admin
+      mode: 0755
+
+  - name: Ensure config directory exists
+    ansible.builtin.file:
+      path: "{{ host_fs }}/{{ container_name }}/config"
+      state: directory
+      mode: 0755
+
+  - name: Ensure metadata directory exists
+    ansible.builtin.file:
+      path: "{{ host_fs }}/{{ container_name }}/metadata"
+      state: directory
+      mode: 0755
+
+  - name: Ensure log directory exists
+    ansible.builtin.file:
+      path: "{{ host_fs }}/{{ container_name }}/log"
+      state: directory
+      owner: "33" 
+      group: "33"
+      mode: 0755
+
+  - name: Check if file exists
+    ansible.builtin.stat:
+      path: "{{ inventory_dir }}/../keys/{{container_env['SIMPLESAML_PROJECT']}}-{{container_env['SIMPLESAML_ENV']}}.pem"
+    delegate_to: localhost
+    become: false
+    register: saml_key
+
+#  - name: Show saml_key variable
+#    ansible.builtin.debug:
+#      var: saml_key
+
+  - name: Copy SAML key
+    ansible.builtin.copy:
+      src: "{{ inventory_dir }}/../keys/{{container_env['SIMPLESAML_PROJECT']}}-{{container_env['SIMPLESAML_ENV']}}.pem"
+      dest: "{{ host_fs }}/{{ container_name }}/cert/{{container_env['SIMPLESAML_PROJECT']}}.pem"
+      owner: "33" 
+      group: "33"
+      mode: 0600
+    when: saml_key.stat.exists
+
+  - name: Copy SAML certificate 
+    ansible.builtin.copy:
+      src: "{{ inventory_dir }}/../keys/{{container_env['SIMPLESAML_PROJECT']}}-{{container_env['SIMPLESAML_ENV']}}.crt"
+      dest: "{{ host_fs }}/{{ container_name }}/cert/{{container_env['SIMPLESAML_PROJECT']}}.crt"
+      mode: 0644
+
+  - name: Check SAML key
+    ansible.builtin.debug:
+      msg: "WARNING: Remote SAML key library-drupal-saml-staging.pem is missing."
+    when: not saml_key.stat.exists
+
+  - name: Copy simplesamlphp config directory
+    ansible.builtin.copy:
+      src: "{{ inventory_dir }}/files/var/simplesamlphp/config/"
+      dest: "{{ host_fs }}/{{ container_name }}/config/"
+      owner: "33" 
+      group: "33"
+
+  - name: Copy simplesamlphp metadata directory
+    ansible.builtin.copy:
+      src: "{{ inventory_dir }}/files/var/simplesamlphp/metadata/"
+      dest: "{{ host_fs }}/{{ container_name }}/metadata/"
+      owner: "33" 
+      group: "33"
+
+  - name: authenticate with the ECR registry
+    ansible.builtin.include_tasks:
+      file: "{{ inventory_dir }}/../../../global/playbooks/ecr_authenticate.yml"
+
+  - name: Ensure shared docker network exists
+    docker_network:
+      name: drupalnet
+      state: present
+
+  - name: stop and remove running containers
+    docker_container:
+      name: "{{ container_name }}"
+      state: absent
+
+  - name: run the appropriate container
+    docker_container:
+      pull: true
+      name: "{{ container_name }}"
+      image: "{{ globalvars.registry_name }}/{{ image_name }}:{{ deploy_tag if deploy_tag != 'latest' else latest_tag.stdout }}"
+      restart_policy: unless-stopped
+      log_driver: syslog
+      log_options:
+        tag: "{{ container_name }}"
+      ports:
+        - 8081:80
+      networks:
+        - name: drupalnet
+          aliases:
+            - sp
+      volumes:
+#        - "{{ host_fs }}/{{ container_name }}/apache2:/etc/apache2:z"
+        - "{{ host_fs }}/{{ container_name }}/cert:/var/simplesamlphp/cert:z"
+        - "{{ host_fs }}/{{ container_name }}/log:/var/simplesamlphp/log:z"
+        - "{{ host_fs }}/{{ container_name }}/config:/var/simplesamlphp/config:z"
+        - "{{ host_fs }}/{{ container_name }}/metadata:/var/simplesamlphp/metadata:z"
+
+      env:
+        "{{ container_env }}"
+
+#
+# end of file
+#

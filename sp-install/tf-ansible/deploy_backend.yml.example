@@ -1,0 +1,244 @@
+#
+# Ansible deploy scripting
+#
+
+---
+- name: Deploy backend for node 0
+  hosts: uva-xxx-drupal-staging-0
+  become: true
+
+  vars:
+    # === ENVIRONMENT CONFIGURATION ===
+    deployment_environment: "staging"
+    debug_enabled: false
+    sitewide_alert_env: "staging"
+    
+    # === PROJECT CONFIGURATION ===
+    image_name: uvalib/drupal-xxx
+    container_name: drupal-0
+    hostname: "xxx-dev"
+    host_fs: /mnt/data
+    drupal_home: /opt/drupal
+    container_fs: /var/www/html
+    container_env: container_0.env.generated
+    managed_env: container_0.env.managed
+    secret_env:  container_0.env.secret
+    ansible_python_interpreter: /usr/bin/python3
+    ip_address: "{{ ansible_ssh_host }}"
+    deploy_tag: "latest"
+
+  tasks:
+
+  - debug:
+      msg: "INFO: to deploy a specific version, pass '-e deploy_tag=<deploy tag>' on the commandline"
+    when: deploy_tag == "latest"
+
+  - name: Check that the private keys exist
+    ansible.builtin.include_tasks:
+      file: "{{ inventory_dir }}/../../../global/playbooks/check_private_keys.yml"
+
+  - name: Load the global definitions
+    ansible.builtin.include_tasks:
+      file: "{{ inventory_dir }}/../../../global/playbooks/load_global_vars.yml"
+
+  - name: load the terraform definitions
+    ansible.builtin.include_tasks:
+      file: "{{ inventory_dir }}/../../../global/playbooks/load_tf_vars.yml"
+
+  - name: Get the latest build tag
+    local_action: shell aws ssm get-parameter --name "/containers/{{ image_name }}/latest" | grep "Value" | awk -F\" '{print $4}'
+    become: no
+    register: latest_tag
+    failed_when: latest_tag.stderr != ""
+
+  - name: load the container environment
+    include_vars:
+      name: container_env
+      file: "{{ inventory_dir }}/{{ container_env }}"
+
+  - name: load the managed container environment
+    include_vars:
+      name: managed_env
+      file: "{{ inventory_dir }}/{{ managed_env }}"
+
+  - name: load the secret container environment
+    include_vars:
+      name: secret_env
+      file: "{{ inventory_dir }}/{{ secret_env }}"
+
+  - name: "Add managed environment metadata to container"
+    set_fact:
+      container_env: "{{ container_env | combine(managed_env, secret_env) }}"
+
+  - name: "WARNING: Matomo tracking is DISABLED for this deployment"
+    debug:
+      msg: "WARNING: Matomo is disabled (XXX_MATOMO_ENABLED=false). The site will behave like an unconfigured install (no tracking; dashboard mock mode)."
+    when:
+      - container_env is defined
+      - container_env.XXX_MATOMO_ENABLED is defined
+      - container_env.XXX_MATOMO_ENABLED | lower == 'false'
+
+  - name: "WARNING: Matomo configuration incomplete"
+    debug:
+      msg: "WARNING: Matomo is enabled but MATOMO_URL/MATOMO_SITE_ID/MATOMO_API_TOKEN are missing or empty. Tracking will not function."
+    when:
+      - container_env is defined
+      - container_env.XXX_MATOMO_ENABLED is defined
+      - container_env.XXX_MATOMO_ENABLED | lower == 'true'
+      - container_env.MATOMO_URL | default('') | length == 0 or (container_env.MATOMO_SITE_ID | default(0) | int) == 0 or container_env.MATOMO_API_TOKEN | default('') | length == 0
+
+  - name: "Add environment metadata to container"
+    set_fact:
+      container_env: "{{ container_env | combine({
+        'DEVOPS_LABEL': inventory_hostname,
+        'ENVIRONMENT': deployment_environment
+      }) }}"
+
+  # ------ SimpleSAML config BEGINS ------
+  - name: Ensure simplesamlphp directory exists
+    vars:
+      subdirs:
+        - cert
+        - drupal-config
+        - metadata
+        - config
+        - log
+    ansible.builtin.file:
+      path: "{{ host_fs }}/{{ container_name }}/simplesamlphp/{{ item }}"
+      state: directory
+      mode: 0755
+    loop: "{{ subdirs }}"
+ 
+  - name: Check if file exists
+    ansible.builtin.stat:
+      path: "{{ inventory_dir }}/../keys/{{container_env['SIMPLESAML_PROJECT']}}-{{container_env['SIMPLESAML_ENV']}}.pem"
+    delegate_to: localhost
+    become: false
+    register: saml_key
+
+  - name: Copy SAML key
+    ansible.builtin.copy:
+      src: "{{ inventory_dir }}/../keys/{{container_env['SIMPLESAML_PROJECT']}}-{{container_env['SIMPLESAML_ENV']}}.pem"
+      dest: "{{ host_fs }}/{{ container_name }}/simplesamlphp/cert/{{container_env['SIMPLESAML_PROJECT']}}.pem"
+      owner: "33"
+      group: "33"
+      mode: 0600
+    when: saml_key.stat.exists
+
+  - name: Copy SAML certificate
+    ansible.builtin.copy:
+      src: "{{ inventory_dir }}/../keys/{{container_env['SIMPLESAML_PROJECT']}}-{{container_env['SIMPLESAML_ENV']}}.crt"
+      dest: "{{ host_fs }}/{{ container_name }}/simplesamlphp/cert/{{container_env['SIMPLESAML_PROJECT']}}.crt"
+      mode: 0644
+
+  - name: Check SAML key
+    ansible.builtin.debug:
+      msg: "WARNING: Remote SAML key {{container_env['SIMPLESAML_PROJECT']}}-{{container_env['SIMPLESAML_ENV']}}.pem is missing."
+    when: not saml_key.stat.exists
+
+  - name: Copy simplesamlphp/config directory
+    ansible.builtin.copy:
+      src: "{{ inventory_dir }}/files/var/simplesamlphp/config/"
+      dest: "{{ host_fs }}/{{ container_name }}/simplesamlphp/config/"
+      owner: "33"
+      group: "33"
+
+  - name: Copy simplesamlphp/metadata directory
+    ansible.builtin.copy:
+      src: "{{ inventory_dir }}/files/var/simplesamlphp/metadata/"
+      dest: "{{ host_fs }}/{{ container_name }}/simplesamlphp/metadata/"
+      owner: "33"
+      group: "33"
+
+  - name: Copy simplesamlphp drupal config
+    ansible.builtin.copy:
+      src: "{{ inventory_dir }}/files/var/simplesamlphp/drupal-config/simplesamlphp_auth.settings.yml"
+      dest: "{{ host_fs }}/{{ container_name }}/simplesamlphp/drupal-config/simplesamlphp_auth.settings.yml"
+      mode: 0644
+  # ------ SimpleSAML config ENDS ------
+
+  - name: authenticate with the ECR registry
+    ansible.builtin.include_tasks:
+      file: "{{ inventory_dir }}/../../../global/playbooks/ecr_authenticate.yml"
+
+  - name: Ensure shared docker network exists
+    docker_network:
+      name: drupalnet
+      state: present
+
+  - name: stop and remove running containers
+    docker_container:
+      name: "{{ container_name }}"
+      state: absent
+
+  - name: set necessary directory permissions
+    file:
+      path: "{{ host_fs }}/{{ container_name }}/sites/default/files"
+      state: directory
+      owner: 33
+      group: 33
+      mode: 0755
+
+  - name: run the appropriate container
+    docker_container:
+      pull: true
+      name: "{{ container_name }}"
+      hostname: "{{ hostname }}"
+      image: "{{ globalvars.registry_name }}/{{ image_name }}:{{ deploy_tag if deploy_tag != 'latest' else latest_tag.stdout }}"
+      restart_policy: unless-stopped
+      log_driver: syslog
+      log_options:
+        tag: "{{ container_name }}"
+      ports:
+        - 8080:80
+      networks:
+        - name: drupalnet
+      volumes:
+        - "{{ host_fs }}/{{ container_name }}/sites/default/files:{{ container_fs }}/sites/default/files:z"
+        - "{{ host_fs }}/{{ container_name }}/config:{{ drupal_home }}/config:z"
+        # SimpleSAML configs
+        - "{{ host_fs }}/{{ container_name }}/simplesamlphp/cert:/var/simplesamlphp/cert:z"
+        - "{{ host_fs }}/{{ container_name }}/simplesamlphp/log:/var/simplesamlphp/log:z"
+        - "{{ host_fs }}/{{ container_name }}/simplesamlphp/config:/var/simplesamlphp/config:z"
+        - "{{ host_fs }}/{{ container_name }}/simplesamlphp/metadata:/var/simplesamlphp/metadata:z"
+        - "{{ host_fs }}/{{ container_name }}/simplesamlphp/drupal-config:/var/simplesamlphp/drupal-config:z"
+      env:
+        "{{ container_env }}"
+
+  - name: clear caches
+    command: docker exec -ti drupal-0 {{ drupal_home }}/vendor/bin/drush cr
+    ignore_errors: yes
+
+  # Configure sitewide alerts for this environment
+  - name: Configure sitewide alerts
+    ansible.builtin.include_tasks:
+      file: "{{ inventory_dir }}/../../ansible-roles/sitewide-alert-config.yml"
+    vars:
+      sitewide_alert_environment: "staging"
+
+  - name: test Apache configuration
+    command: docker exec {{ container_name }} apache2ctl configtest
+    register: apache_test
+    failed_when: apache_test.rc != 0
+
+  - name: reload Apache configuration
+    command: docker exec {{ container_name }} service apache2 reload
+    register: apache_reload
+    failed_when: apache_reload.rc != 0
+
+  # SimpleSAML configs
+  - name: load simplesaml drupal configs
+    command: docker exec -ti drupal-0 {{ drupal_home }}/vendor/bin/drush cim -y --partial --source=/var/simplesamlphp/drupal-config
+    ignore_errors: yes
+
+  - name: cleanup docker
+    docker_prune:
+      images: true
+      images_filters:
+        dangling: false
+      builder_cache: true
+      builder_cache_keep_storage: 8g
+
+#
+# end of file
+#
