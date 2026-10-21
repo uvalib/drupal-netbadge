@@ -39,6 +39,17 @@ RUN apt-get install -y \
     mysqli \
     pdo_mysql
 
+# Interim request hardening after the PHP security release of 2026-10-21: upload-progress off, no
+# file uploads, small request bodies, multipart refused. This reduces exposure; it is not a fix.
+# The fix is a patched PHP in the base image.
+COPY package/hardening/zz-mandala-security.ini /usr/local/etc/php/conf.d/zz-mandala-security.ini
+COPY package/hardening/mandala-php-hardening.conf /etc/apache2/conf-available/mandala-php-hardening.conf
+RUN a2enconf mandala-php-hardening
+
+# Show the PHP version in every build log, so it is obvious whether the base has picked up a
+# security release.
+RUN php -v | head -1
+
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
